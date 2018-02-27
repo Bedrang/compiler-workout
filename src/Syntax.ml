@@ -2,7 +2,7 @@
    The library provides "@type ..." syntax extension and plugins like show, etc.
 *)
 open GT 
-    
+open List
 (* Simple expressions: syntax and semantics *)
 module Expr =
   struct
@@ -41,7 +41,30 @@ module Expr =
        Takes a state and an expression, and returns the value of the expression in 
        the given state.
     *)
-    let eval _ = failwith "Not implemented yet"
+    let rec eval state expr = 
+    match expr with
+    | Var v -> state v 
+    | Const c -> c 
+    | Binop (operators, expr1, expr2) ->
+    let right = eval state expr1 in
+    let left = eval state expr2 in
+    let numericbool numbers = if numbers != 0 then true else false in 
+    let boolnumeric numbers = if numbers then 1 else 0 in
+    match operators with
+    |"+" -> (right + left)
+    |"-" -> (right - left)
+    |"*" -> (right * left)
+    |"/" -> (right / left)
+    |"%" -> (right mod left)
+    |"<"  -> boolnumeric (right < left)
+    |"<=" -> boolnumeric (right <= left)
+    |">"  -> boolnumeric (right > left)
+    |">=" -> boolnumeric (right >= left)
+    |"==" -> boolnumeric (right == left)
+    |"!=" -> boolnumeric (right != left)
+    |"!!" -> boolnumeric (numericbool right || numericbool left)
+    |"&&" -> boolnumeric (numericbool right && numericbool left)
+    | _ -> failwith "Error"
 
   end
                     
@@ -65,10 +88,16 @@ module Stmt =
 
        Takes a configuration and a statement, and returns another configuration
     *)
-    let eval _ = failwith "Not implemented yet"
-                                                         
-  end
+    
 
+  let rec eval sio stmt =
+      let (statement, input, output) = sio in
+      match stmt with
+	|Read v -> let head = hd input in let tail = tl input in (Expr.update v head statement, tail, output)
+	|Write expr ->  let result = Expr.eval statement expr in (statement, input, output @ [result])
+	|Assign(v, expr) -> let result = Expr.eval statement expr in (Expr.update v result statement, input, output)
+	|Seq(seq1, seq2) -> (eval (eval (statement, input, output) seq1) seq2) 
+end
 (* The top-level definitions *)
 
 (* The top-level syntax category is statement *)
