@@ -50,7 +50,7 @@ let rec eval ssio prg =
 
    Takes an input stream, a program, and returns an output stream this program calculates
 *)
-let run p i = let (_, (_, _, o)) = eval ([], (Expr.empty, i, [])) p in o
+let run i p = let (_, (_, _, o)) = eval ([], (Language.Expr.empty, i, [])) p in o
 
 let rec exprcompile expr =
   match expr with
@@ -64,7 +64,6 @@ let rec exprcompile expr =
    Takes a program in the source language and returns an equivalent program for the
    stack machine
  *)
-
  
 let rec compile stmt =
   match stmt with
@@ -72,3 +71,4 @@ let rec compile stmt =
   | Stmt.Read v        	 -> [READ] @ [ST v]
   | Stmt.Write expr       -> (exprcompile expr) @ [WRITE]
   | Stmt.Seq (seq1, seq2) -> compile seq1 @ compile seq2
+
