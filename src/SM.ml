@@ -46,11 +46,11 @@ let rec eval ssio prg =
 
 (* Top-level evaluation
 
-     val run : int list -> prg -> int list
+     val run : prg -> int list -> int list
 
    Takes an input stream, a program, and returns an output stream this program calculates
 *)
-let run i p = let (_, (_, _, o)) = eval ([], (Language.Expr.empty, i, [])) p in o
+let run p i = let (_, (_, _, o)) = eval ([], (Language.Expr.empty, i, [])) p in o
 
 let rec exprcompile expr =
   match expr with
