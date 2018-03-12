@@ -80,7 +80,59 @@ open SM
    Take an environment, a stack machine program, and returns a pair --- the updated environment and the list
    of x86 instructions
 *)
-let compile env code = failwith "Not yet implemented"
+let rec compile env code =
+	let make_mov x y =
+		(match x, y with 
+		| M _, S _ | S _, S _ -> [Mov (x, edx); Mov (edx, y)]
+		| _, _ -> [Mov (x, y)]) in
+	let rec create_binop op x y = 
+		let logic_op op x y = [Mov (y, edx); Binop (op, x, edx)] in
+		(match op with
+		| "+" -> [Mov (x, eax); Binop ("+", y, eax)], eax
+		| "-" -> [Mov (x, eax); Binop ("-", y, eax)], eax
+		| "*" -> [Mov (x, eax); Binop ("*", y, eax)], eax
+		| "/" -> [Mov (x, eax); Cltd; IDiv y], eax
+		| "%" -> [Mov (x, eax); Cltd; IDiv y], edx
+		| ">" -> (logic_op "cmp" y x) @ [Mov (L 0, eax); Set ("g", "%al")], eax
+		| "<" -> (logic_op "cmp" x y) @ [Mov (L 0, eax); Set ("g", "%al")], eax
+		| ">=" -> (logic_op "cmp" y x) @ [Mov (L 0, eax); Set ("ge", "%al")], eax
+		| "<=" -> (logic_op "cmp" x y) @ [Mov (L 0, eax); Set ("ge", "%al")], eax
+		| "==" -> (logic_op "cmp" x y) @ [Mov (L 0, eax); Set ("e", "%al")], eax
+		| "!=" -> (logic_op "cmp" x y) @ [Mov (L 0, eax); Set ("ne", "%al")], eax
+		| "&&" -> 
+			let x_conv, reg_x = create_binop "!=" x (L 0)
+			and y_conv, reg_y = create_binop "!=" y (L 0) in
+			x_conv @ [Mov (reg_x, x)] @ y_conv @ [Mov (reg_y, y)] @ (logic_op "&&" x y) @ [Mov (L 0, eax); Set ("nz", "%al")], eax
+		| "!!" -> (logic_op "!!" x y) @ [Mov (L 0, eax); Set ("nz", "%al")], eax
+		| _ -> failwith "Not implemented binary operator %s\n" @@ op) in
+	match code with
+	| [] -> (env, [])
+	| insn::rest ->
+		let env', ops = 
+			(match insn with
+			| BINOP op -> 
+				let y, x, env = env#pop2 in
+				let e, env = env#allocate
+				and new_ops, acc = create_binop op x y in
+				(env, new_ops @ (make_mov acc e))
+			| CONST n ->
+				let x, env = env#allocate in
+				(env, make_mov (L n) x)
+			| READ ->
+				let e, env = env#allocate in
+				(env, [Call "Lread"] @ make_mov eax e)
+			| WRITE ->
+				let e, env = env#pop in
+				(env, [Push e; Call "Lwrite"; Pop edx])
+			| LD x ->
+				let e, env = env#allocate in
+				(env, make_mov (M (env#loc x)) e)
+			| ST x -> 
+				let e, env = (env#global x)#pop in
+				(env, make_mov e (M (env#loc x)))) in
+		let newenv, op_list = compile env' rest in
+		(newenv, ops @ op_list);;
+
 
 (* A set of strings *)           
 module S = Set.Make (String)
@@ -111,7 +163,7 @@ class env =
     (* pushes an operand to the symbolic stack *)
     method push y = {< stack = y::stack >}
 
-    (* pops one operand from the symbolic stack *)
+     (* pops one operand from the symbolic stack *)
     method pop  = let x::stack'    = stack in x,    {< stack = stack' >}
 
     (* pops two operands from the symbolic stack *)

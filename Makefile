@@ -11,6 +11,11 @@ install: ;
 regression:
 	pushd regression && ./test.sh && popd
 
+install: ;
+
+regression:
+	pushd regression && ./test.sh && popd
+
 clean:
 	pushd src && make clean && popd
 	pushd runtime && make clean && popd
