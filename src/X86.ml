@@ -72,7 +72,7 @@ let show instr =
 
 (* Opening stack machine to use instructions without fully qualified names *)
 open SM
-
+open List
 (* Symbolic stack machine evaluator
 
      compile : env -> prg -> env * instr list
@@ -80,59 +80,70 @@ open SM
    Take an environment, a stack machine program, and returns a pair --- the updated environment and the list
    of x86 instructions
 *)
-let rec compile env code =
-	let make_mov x y =
-		(match x, y with 
-		| M _, S _ | S _, S _ -> [Mov (x, edx); Mov (edx, y)]
-		| _, _ -> [Mov (x, y)]) in
-	let rec create_binop op x y = 
-		let logic_op op x y = [Mov (y, edx); Binop (op, x, edx)] in
-		(match op with
-		| "+" -> [Mov (x, eax); Binop ("+", y, eax)], eax
-		| "-" -> [Mov (x, eax); Binop ("-", y, eax)], eax
-		| "*" -> [Mov (x, eax); Binop ("*", y, eax)], eax
-		| "/" -> [Mov (x, eax); Cltd; IDiv y], eax
-		| "%" -> [Mov (x, eax); Cltd; IDiv y], edx
-		| ">" -> (logic_op "cmp" y x) @ [Mov (L 0, eax); Set ("g", "%al")], eax
-		| "<" -> (logic_op "cmp" x y) @ [Mov (L 0, eax); Set ("g", "%al")], eax
-		| ">=" -> (logic_op "cmp" y x) @ [Mov (L 0, eax); Set ("ge", "%al")], eax
-		| "<=" -> (logic_op "cmp" x y) @ [Mov (L 0, eax); Set ("ge", "%al")], eax
-		| "==" -> (logic_op "cmp" x y) @ [Mov (L 0, eax); Set ("e", "%al")], eax
-		| "!=" -> (logic_op "cmp" x y) @ [Mov (L 0, eax); Set ("ne", "%al")], eax
-		| "&&" -> 
-			let x_conv, reg_x = create_binop "!=" x (L 0)
-			and y_conv, reg_y = create_binop "!=" y (L 0) in
-			x_conv @ [Mov (reg_x, x)] @ y_conv @ [Mov (reg_y, y)] @ (logic_op "&&" x y) @ [Mov (L 0, eax); Set ("nz", "%al")], eax
-		| "!!" -> (logic_op "!!" x y) @ [Mov (L 0, eax); Set ("nz", "%al")], eax
-		| _ -> failwith "Not implemented binary operator %s\n" @@ op) in
-	match code with
-	| [] -> (env, [])
-	| insn::rest ->
-		let env', ops = 
-			(match insn with
-			| BINOP op -> 
-				let y, x, env = env#pop2 in
-				let e, env = env#allocate
-				and new_ops, acc = create_binop op x y in
-				(env, new_ops @ (make_mov acc e))
-			| CONST n ->
-				let x, env = env#allocate in
-				(env, make_mov (L n) x)
-			| READ ->
-				let e, env = env#allocate in
-				(env, [Call "Lread"] @ make_mov eax e)
-			| WRITE ->
-				let e, env = env#pop in
-				(env, [Push e; Call "Lwrite"; Pop edx])
-			| LD x ->
-				let e, env = env#allocate in
-				(env, make_mov (M (env#loc x)) e)
-			| ST x -> 
-				let e, env = (env#global x)#pop in
-				(env, make_mov e (M (env#loc x)))) in
-		let newenv, op_list = compile env' rest in
-		(newenv, ops @ op_list);;
 
+let compile env =
+  let mov x y = match x, y with
+    | R _, _ | _, R _ -> [Mov(x, y)]
+    | _, _ -> [Mov (x, eax); Mov (eax, y)] in
+  let compile env = function
+    | CONST n ->
+      let s, env = env#allocate in
+      env, [Mov (L n, s)]
+    | READ ->
+      let s, env = env#allocate in
+      env, [Call "Lread"; Mov (eax, s)]
+    | WRITE ->
+      let s, env = env#pop in
+      env, [Push s; Call "Lwrite"; Pop eax]
+    | LD x ->
+      let s, env = (env#global x)#allocate in
+      env, mov (M env#loc x) s
+    | ST x ->
+      let s, env = (env#global x)#pop in
+      env, mov s (M env#loc x)
+    | BINOP op ->
+      let y, x, env = env#pop2 in
+      let res, env = env#allocate in
+      let designation = function
+        | ">"  -> "g"
+        | ">=" -> "ge"
+        | "<"  -> "l"
+        | "<=" -> "le"
+        | "==" -> "e"
+        | "!=" -> "ne"
+        | _ -> failwith "unknown compare" in
+      let cmp x y = Binop("cmp", x, y) in
+      let zero r = Binop("^", r, r) in
+      let numericbool x y suf = [zero y; cmp x y; Set ("ne", suf)] in
+      env, match op with
+      | "+" | "-" | "*" ->
+        [
+          Mov (x, eax);
+          Binop (op, y, eax);
+          Mov (eax, res)
+        ]
+      | "/" | "%" ->
+        [
+          Mov (x, eax);
+          Cltd;
+          Mov (y, edi);
+          IDiv edi;
+          Mov ((if op = "/" then eax else edx), res)
+        ]
+      | ">" | ">=" | "<" | "<=" | "==" | "!=" ->
+        [
+          Mov (x, eax);
+          zero edx;
+          cmp y eax;
+          Set (designation op, "%dl");
+          Mov (edx, res)
+        ]
+      | "!!" | "&&" ->
+        numericbool x eax "%al" @
+        numericbool y edx "%dl" @
+        [Binop(op, edx, eax); Mov(eax, res)]
+      | _ -> failwith "unknown binary operator" in
+  List.fold_left (fun (e, o) i -> let (e', o') = compile e i in (e', o @ o')) (env, [])
 
 (* A set of strings *)           
 module S = Set.Make (String)
@@ -218,3 +229,4 @@ let build stmt name =
   let inc = try Sys.getenv "RC_RUNTIME" with _ -> "../runtime" in
   Sys.command (Printf.sprintf "gcc -m32 -o %s %s/runtime.o %s.s" name inc name)
  
+
