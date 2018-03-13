@@ -20,16 +20,9 @@ build-test: [
 depends: [
   "ocamlbuild" {build}
   "ocamlfind"
-<<<<<<< HEAD
   "camlp5" {= "7.05"}
   "ostap" {= "0.3"}
   "GT" {= "0.0.1"}
   "re" {= "1.7.2"}
 ]
-=======
-  "camlp5"
-  "ostap"
-  "GT"
-  "re"
-]
->>>>>>> 4c5ba170d6c41286b0f6c1196bd337b4f461fdd5
+
