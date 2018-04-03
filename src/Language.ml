@@ -46,6 +46,7 @@ module Expr =
        Takes a state and an expression, and returns the value of the expression in 
        the given state.
     *)                                                       
+
         let rec eval state expr = 
     match expr with
     | Var v -> state v 
@@ -76,12 +77,14 @@ module Expr =
       fun expr1 expr2 -> Binop (operators, expr1, expr2)) in 
       List.map listof operatorslist;;
 
+
     (* Expression parser. You can use the following terminals:
 
          IDENT   --- a non-empty identifier a-zA-Z[a-zA-Z0-9_]* as a string
          DECIMAL --- a decimal constant [0-9]+ as a string
                                                                                                                   
     *)
+
     ostap (
       primary: v:IDENT {Var v} | v:DECIMAL {Const v} | -"(" parse -")";
       parse: 
@@ -96,7 +99,7 @@ module Expr =
           |]
           primary
         )
-    )
+
     
   end
                     
@@ -114,6 +117,7 @@ module Stmt =
     (* conditional                      *) | If     of Expr.t * t * t
     (* loop with a pre-condition        *) | While  of Expr.t * t
     (* loop with a post-condition       *) | Repeat of Expr.t * t  with show
+
                                                                     
     (* The type of configuration: a state, an input stream, an output stream *)
     type config = Expr.state * int list * int list 
@@ -124,6 +128,7 @@ module Stmt =
 
        Takes a configuration and a statement, and returns another configuration
     *)
+
     let rec eval sio stmt =
       let (statement, input, output) = sio in
       match stmt with
@@ -146,7 +151,7 @@ module Stmt =
         | [] -> sf
         | (expr, s)::fi' -> If (expr, s, elif fi' sf)
 	
-	
+	(* Statement parser *)
     ostap (
             parse:
        st:stmt ";" ps:parse {Seq (st, ps)}
@@ -171,7 +176,7 @@ module Stmt =
       
      )
 
-      
+
   end
 
 (* The top-level definitions *)

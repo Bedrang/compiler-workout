@@ -29,6 +29,7 @@ type config = int list * Stmt.config
    Takes an environment, a configuration and a program, and returns a configuration as a result. The
    environment is used to locate a label to jump to (via method env#labeled <label_name>)
 *)                         
+
 let rec eval env ssio prg =
     match prg with
     | [] -> ssio
@@ -54,6 +55,7 @@ let rec eval env ssio prg =
       | "nz" -> s <> 0
       | "z" -> s = 0 
       in eval env (hd, sio) (if (x) then (env#labeled label) else rest)
+
 
 (* Top-level evaluation
 
@@ -90,6 +92,7 @@ let run p i =
    Takes a program in the source language and returns an equivalent program for the
    stack machine
 *)
+
 let rec compile stmt =
   match stmt with
   | Stmt.Assign (v, expr) -> (exprcompile expr) @ [ST v]
@@ -112,3 +115,4 @@ let rec compile stmt =
     let current_case = compile seq1 in
     let last_case = compile seq2 in
     (exprcompile expr @ [CJMP ("z", else_label)] @ current_case @ [JMP end_label] @ [LABEL else_label] @ last_case @ [LABEL end_label])
+
