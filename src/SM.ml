@@ -32,6 +32,7 @@ type config = (prg * State.t) list * int list * Stmt.config
    Takes an environment, a configuration and a program, and returns a configuration as a result. The
    environment is used to locate a label to jump to (via method env#labeled <label_name>)
 *)                         
+
 let rec eval env ssio prg =
     match prg with
     | [] -> ssio
@@ -71,6 +72,7 @@ let rec eval env ssio prg =
         eval env (cstack', stackop, (State.leave s statement, input, output)) prg
       | [] -> ssio
 
+
 (* Top-level evaluation
 
      val run : prg -> int list -> int list
@@ -109,6 +111,7 @@ let run p i =
    Takes a program in the source language and returns an equivalent program for the
    stack machine
 *)
+
 let compile (defs, stmt) = 
 let rec compile' stmt =
   match stmt with

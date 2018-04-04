@@ -6,7 +6,9 @@ open GT
 (* Opening a library for combinator-based syntax analysis *)
 open Ostap
 open Combinators
+
 open List
+
                          
 (* States *)
 module State =
@@ -16,12 +18,15 @@ module State =
     type t = {g : string -> int; l : string -> int; scope : string list}
 
     (* Empty state *)
+
     let emp x = failwith (Printf.sprintf "%s is undefined" x)
     let empty = {g = emp; l = emp; scope = []}
+
 
     (* Update: non-destructively "modifies" the state s by binding the variable x 
        to value v and returns the new state w.r.t. a scope
     *)
+
     let update x v s = 
     let update' f y = if x = y then v else f y in 
     if mem x s.scope then { s with l = update' s.l } else { s with g = update' s.g }
@@ -34,6 +39,7 @@ module State =
 
     (* Drops a scope *)
     let leave st st' = {st with g= st'.g}
+
 
   end
     
@@ -94,12 +100,14 @@ module Expr =
       fun expr1 expr2 -> Binop (operators, expr1, expr2)) in 
       List.map listof operatorslist;;   
 
+
     (* Expression parser. You can use the following terminals:
 
          IDENT   --- a non-empty identifier a-zA-Z[a-zA-Z0-9_]* as a string
          DECIMAL --- a decimal constant [0-9]+ as a string
                                                                                                                   
     *)
+
     ostap (
       primary: v:IDENT {Var v} | v:DECIMAL {Const v} | -"(" parse -")";
       parse: 
@@ -196,10 +204,8 @@ module Stmt =
       skip: "skip" {Skip};
       call: x:IDENT "(" args:!(Util.list0)[Expr.parse] ")" {Call (x, args)};
       seq: left_st:stmt -";" right_st:parse { Seq (left_st, right_st) }
-    )
       
   end
-
 
 (* Function and procedure definitions *)
 module Definition =
@@ -216,6 +222,7 @@ module Definition =
         "{" body: !(Stmt.parse) "}" { (fname, (args, (match locals with None -> [] | Some l -> l), body))}
      )
 
+
   end
     
 (* The top-level definitions *)
@@ -229,6 +236,7 @@ type t = Definition.t list * Stmt.t
 
    Takes a program and its input stream, and returns the output stream
 *)
+
 let eval (defs, body) i = 
   let module DefMap = Map.Make (String) in
   let definitionsMap = List.fold_left (fun m ((name, _) as definitions) -> DefMap.add name definitions m) DefMap.empty defs in
@@ -242,3 +250,4 @@ let parse = ostap (
     (defs, body) 
   }
 )                                           
+
