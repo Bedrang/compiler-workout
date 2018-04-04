@@ -204,7 +204,7 @@ module Stmt =
       skip: "skip" {Skip};
       call: x:IDENT "(" args:!(Util.list0)[Expr.parse] ")" {Call (x, args)};
       seq: left_st:stmt -";" right_st:parse { Seq (left_st, right_st) }
-      
+      )
   end
 
 (* Function and procedure definitions *)
