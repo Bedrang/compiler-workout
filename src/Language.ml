@@ -119,24 +119,6 @@ module Expr =
           env#definition env name evaluated_args sior' 
    
 
-
-    (* The type of configuration: a state, an input stream, an output stream, an optional value *)
-    type config = State.t * int list * int list * int option
-                                                            
-    (* Expression evaluator
-
-          val eval : env -> config -> t -> int * config
-
-
-       Takes an environment, a configuration and an expresion, and returns another configuration. The 
-       environment supplies the following method
-
-           method definition : env -> string -> int list -> config -> config
-
-       which takes an environment (of the same type), a name of the function, a list of actual parameters and a configuration, 
-       an returns a pair: the return value for the call and the resulting configuration
-    *)                                                       
-    let rec eval env ((st, i, o, r) as conf) expr = failwith "Not implemented"
          
     (* Expression parser. You can use the following terminals:
 
