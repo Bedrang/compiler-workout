@@ -38,7 +38,7 @@ type config = (prg * State.t) list * int list * Expr.config
   | "z" -> value = 0 
 
 
-   Takes an environment, a configuration and a program, and returns a configuration as a result. The
+   (*Takes an environment, a configuration and a program, and returns a configuration as a result. The
    environment is used to locate a label to jump to (via method env#labeled <label_name>)
 *)                                                  
 
