@@ -7,6 +7,7 @@ open GT
 open Ostap
 open Combinators
 open List                         
+
 (* States *)
 module State =
   struct
@@ -57,6 +58,7 @@ module Expr =
         +, -                 --- addition, subtraction
         *, /, %              --- multiplication, division, reminder
     *)
+
 
     (* The type of configuration: a state, an input stream, an output stream, an optional value *)
     type config = State.t * int list * int list * int option
@@ -117,11 +119,31 @@ module Expr =
           env#definition env name evaluated_args sior' 
    
 
+
+    (* The type of configuration: a state, an input stream, an output stream, an optional value *)
+    type config = State.t * int list * int list * int option
+                                                            
+    (* Expression evaluator
+
+          val eval : env -> config -> t -> int * config
+
+
+       Takes an environment, a configuration and an expresion, and returns another configuration. The 
+       environment supplies the following method
+
+           method definition : env -> string -> int list -> config -> config
+
+       which takes an environment (of the same type), a name of the function, a list of actual parameters and a configuration, 
+       an returns a pair: the return value for the call and the resulting configuration
+    *)                                                       
+    let rec eval env ((st, i, o, r) as conf) expr = failwith "Not implemented"
+         
     (* Expression parser. You can use the following terminals:
 
          IDENT   --- a non-empty identifier a-zA-Z[a-zA-Z0-9_]* as a string
          DECIMAL --- a decimal constant [0-9]+ as a string                                                                                                                  
     *)
+
      ostap (
       primary: p:IDENT "(" expr:!(Util.list0)[parse] ")" {Call (p, expr)} 
       | v:IDENT {Var v} 
@@ -139,7 +161,7 @@ module Expr =
           |]
           primary
         )
-    )
+
     
   end
                     
@@ -246,7 +268,7 @@ let rec eval env sior k stmt =
       call: x:IDENT "(" args:!(Util.list0)[Expr.parse] ")" {Call (x, args)};
       seq: left_st:stmt -";" right_st:parse { Seq (left_st, right_st) };
       rtn: "return" e:(!(Expr.parse))? {Return e}
-    )
+
       
   end
 

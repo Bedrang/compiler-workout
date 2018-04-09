@@ -37,6 +37,12 @@ type config = (prg * State.t) list * int list * Expr.config
   | "nz" -> value <> 0
   | "z" -> value = 0 
 
+
+   Takes an environment, a configuration and a program, and returns a configuration as a result. The
+   environment is used to locate a label to jump to (via method env#labeled <label_name>)
+*)                                                  
+
+
 let rec eval env conf = function 
 	| [] -> conf
 	| inst::prog -> 
@@ -119,6 +125,7 @@ let run p i =
    Takes a program in the source language and returns an equivalent program for the
    stack machine
 *)
+
 let compile (defs, stmt) = 
 let rec compile' stmt =
   match stmt with
@@ -154,4 +161,5 @@ let rec compile' stmt =
    let compile (name, (param, loc, body)) = 
       [LABEL name; BEGIN (param, loc)] @ compile' body @ [END] in
     compile' stmt @ [END] @ concat (map compile defs)
+
 
