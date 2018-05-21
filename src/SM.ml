@@ -56,9 +56,9 @@ let rec eval env cfg prg =
       let (cstack, stack, config) = cfg in
       let (state, input, output) = config in
       match instr with
-      | BINOP op ->
+      | BINOP operators ->
         let (x::y::stack_tail) = stack in
-        eval env (cstack,  (Value.of_int (Expr.to_func op (Value.to_int y) (Value.to_int x))) :: stack_tail, config) prg_tail
+        eval env (cstack,  (Value.of_int (Expr.comp operators (Value.to_int y) (Value.to_int x))) :: stack_tail, config) prg_tail
       | CONST c -> eval env (cstack, (Value.of_int c)::stack, config) prg_tail
       | STRING s -> eval env (cstack, (Value.of_string s)::stack, config) prg_tail
       | LD x -> eval env (cstack, (State.eval state x)::stack, config) prg_tail
